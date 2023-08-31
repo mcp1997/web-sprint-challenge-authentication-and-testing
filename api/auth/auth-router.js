@@ -32,16 +32,17 @@ router.post('/register', async (req, res) => {
       the response body should include a string exactly as follows: "username taken".
   */
   const { username, password } = req.body
-  const existing = await db('users').where({ username }).first()
   if(!username || !password) {
-    res.status(422).json({
+    return res.status(422).json({
       message: 'username and password required'
     })
   } else if(!username.trim() || !password.trim()) {
-    res.status(422).json({
+    return res.status(422).json({
       message: 'username and password required'
     })
-  } else if(existing) {
+  }
+  const existing = await db('users').where({ username }).first()
+  if(existing) {
     res.status(422).json({
       message: 'username taken'
     })
@@ -97,12 +98,17 @@ router.post('/login', async (req, res) => {
       the response body should include a string exactly as follows: "invalid credentials".
   */
   const { username, password } = req.body
-  const user = await db('users').where({ username }).first()
   if(!username || !password) {
-    res.status(422).json({
+    return res.status(422).json({
       message: 'username and password required'
     })
-  } else if(!user || !(bcrypt.compareSync(password, user.password))) {
+  } else if(!username.trim() || !password.trim()) {
+    return res.status(422).json({
+      message: 'username and password required'
+    })
+  }
+  const user = await db('users').where({ username }).first()
+  if(!user || !(bcrypt.compareSync(password, user.password))) {
     res.status(401).json({
       message: 'invalid credentials'
     })

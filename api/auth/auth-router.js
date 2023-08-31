@@ -1,7 +1,11 @@
 const router = require('express').Router();
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const { JWT_SECRET } = require('../secrets')
+const db = require('../../data/dbConfig')
+const Users = require('./auth-model');
 
-router.post('/register', (req, res) => {
-  res.end('implement register, please!');
+router.post('/register', async (req, res) => {
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -27,10 +31,44 @@ router.post('/register', (req, res) => {
     4- On FAILED registration due to the `username` being taken,
       the response body should include a string exactly as follows: "username taken".
   */
+  const { username, password } = req.body
+  const existing = await db('users').where({ username }).first()
+  if(!username || !password) {
+    res.status(422).json({
+      message: 'username and password required'
+    })
+  } else if(existing) {
+    res.status(422).json({
+      message: 'username taken'
+    })
+  } else {
+    const hash = bcrypt.hashSync(password, 8)
+    Users.insert({ username, password: hash })
+      .then(created => {
+        res.status(201).json(created)
+      })
+      .catch(err => {
+        res.status(500).json({
+          message: err.message,
+          stack: err.stack
+        })
+      })
+  }
 });
 
-router.post('/login', (req, res) => {
-  res.end('implement login, please!');
+const buildToken = user => {
+  console.log(JWT_SECRET)
+  const payload = {
+    subject: user.id,
+    username: user.username
+  }
+  const options = {
+    expiresIn: '1d',
+  }
+  return jwt.sign(payload, JWT_SECRET, options)
+}
+
+router.post('/login', async (req, res) => {
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -54,6 +92,23 @@ router.post('/login', (req, res) => {
     4- On FAILED login due to `username` not existing in the db, or `password` being incorrect,
       the response body should include a string exactly as follows: "invalid credentials".
   */
+  const { username, password } = req.body
+  const user = await db('users').where({ username }).first()
+  if(!username || !password) {
+    res.status(422).json({
+      message: 'username and password required'
+    })
+  } else if(!user || !(bcrypt.compareSync(password, user.password))) {
+    res.status(401).json({
+      message: 'invalid credentials'
+    })
+  } else {
+    const token = buildToken(user)
+    res.json({
+      message: `welcome, ${user.username}`,
+      token
+    })
+  }
 });
 
 module.exports = router;

@@ -37,6 +37,10 @@ router.post('/register', async (req, res) => {
     res.status(422).json({
       message: 'username and password required'
     })
+  } else if(!username.trim() || !password.trim()) {
+    res.status(422).json({
+      message: 'username and password required'
+    })
   } else if(existing) {
     res.status(422).json({
       message: 'username taken'

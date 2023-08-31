@@ -5,4 +5,4 @@ const insert = async newUser => {
   return db('users').where('id', id).first()
 }
 
-module.exports = { insert }
+module.exports = { insert };
